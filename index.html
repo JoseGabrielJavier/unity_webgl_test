@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en-us">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <title>Unity WebGL Player | face_data_test_1</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+        <link rel="stylesheet" href="TemplateData/style.css">
+        <link rel="icon" href="favicon.ico">
+        <!-- Scripts -->
+        <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/kalidokit@1.1/dist/kalidokit.umd.js"></script>
+        <!-- Scripts -->
+    </head>
+    <body class="container">
+        <h1 class="text-center">Test</h1>
+        <div class="row">
+            <div class="col-8">
+                <div id="unity-container">
+                    <canvas id="unity-canvas" width=960 height=600></canvas>
+                    <div id="unity-loading-bar">
+                        <div id="unity-logo"></div>
+                        <div id="unity-progress-bar-empty">
+                            <div id="unity-progress-bar-full"></div>
+                        </div>
+                    </div>
+                    <div id="unity-warning"> </div>
+                    <div id="unity-footer">
+                        <div id="unity-fullscreen-button"></div>
+                        <div class="h2 text-center">Unity WebGL | Javascript (FaceMesh, Kalido) Example</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-4">
+                <video class="input_video" width="426px" height="240px"></video>
+                <canvas class="output_canvas"></canvas> 
+            </div>
+        </div>
+        
+        <script src="TemplateData\untity-canvas.js"></script>
+        <script type="module">
+            const videoElement = document.getElementsByClassName('input_video')[0];
+            const guideCanvas = document.getElementsByClassName('output_canvas')[0];
+            let facemesh;
+
+            facemesh = new FaceMesh({
+                locateFile: file => {
+                return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
+                }
+            });
+
+            facemesh.setOptions({
+                maxNumFaces: 1,
+                refineLandmarks: true,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+
+            const onResults = results => {
+                drawResults(results.multiFaceLandmarks[0]);
+                animationData(results.multiFaceLandmarks[0]);
+            };
+
+            const drawResults = points => {
+                if (!guideCanvas || !videoElement || !points) return;
+                guideCanvas.width = videoElement.videoWidth;
+                guideCanvas.height = videoElement.videoHeight;
+                let canvasCtx = guideCanvas.getContext("2d");
+                canvasCtx.save();
+                canvasCtx.clearRect(0, 0, guideCanvas.width, guideCanvas.height);
+                // Use `Mediapipe` drawing functions
+                drawConnectors(canvasCtx, points, FACEMESH_TESSELATION, {
+                    color: "#C0C0C070",
+                    lineWidth: 1
+                });
+                if (points && points.length === 478) {
+                //draw pupils
+                drawLandmarks(canvasCtx, [points[468], points[468 + 5]], {
+                    color: "#ffe603",
+                    lineWidth: 2
+                });
+                }
+            };
+
+            const animationData = points => {
+                if (!points) return;
+            
+                let riggedFace;
+            
+                if (points) {
+                    // use kalidokit face solver
+                    riggedFace = Kalidokit.Face.solve(points, {
+                        runtime: "mediapipe",
+                        video: videoElement
+                    });
+                    rigFace(riggedFace, 0.5);
+                }
+            };
+            
+            // update live2d model internal state
+            const rigFace = (result, lerpAmount = 0.7) => {
+                if (!result) return;
+
+                console.log(result);
+
+                if(_unityInstance != null){
+                    _unityInstance.SendMessage('hiyori_pro_t10', 'UpdateData', JSON.stringify(result));
+                }
+            
+                // currentModel.internalModel.motionManager.update = (...args) => {
+                //     // disable default blink animation
+                //     currentModel.internalModel.eyeBlink = undefined;
+                
+                //     coreModel.setParameterValueById(
+                //         "ParamEyeBallX",
+                //         lerp(
+                //         result.pupil.x,
+                //         coreModel.getParameterValueById("ParamEyeBallX"),
+                //         lerpAmount
+                //         )
+                //     );
+                //     coreModel.setParameterValueById(
+                //         "ParamEyeBallY",
+                //         lerp(
+                //         result.pupil.y,
+                //         coreModel.getParameterValueById("ParamEyeBallY"),
+                //         lerpAmount
+                //         )
+                //     );
+                
+                //     // X and Y axis rotations are swapped for Live2D parameters
+                //     // because it is a 2D system and KalidoKit is a 3D system
+                //     coreModel.setParameterValueById(
+                //         "ParamAngleX",
+                //         lerp(
+                //         result.head.degrees.y,
+                //         coreModel.getParameterValueById("ParamAngleX"),
+                //         lerpAmount
+                //         )
+                //     );
+                //     coreModel.setParameterValueById(
+                //         "ParamAngleY",
+                //         lerp(
+                //         result.head.degrees.x,
+                //         coreModel.getParameterValueById("ParamAngleY"),
+                //         lerpAmount
+                //         )
+                //     );
+                //     coreModel.setParameterValueById(
+                //         "ParamAngleZ",
+                //         lerp(
+                //         result.head.degrees.z,
+                //         coreModel.getParameterValueById("ParamAngleZ"),
+                //         lerpAmount
+                //         )
+                //     );
+                
+                //     // update body params for models without head/body param sync
+                //     const dampener = 0.3;
+                //     coreModel.setParameterValueById(
+                //         "ParamBodyAngleX",
+                //         lerp(
+                //         result.head.degrees.y * dampener,
+                //         coreModel.getParameterValueById("ParamBodyAngleX"),
+                //         lerpAmount
+                //         )
+                //     );
+                //     coreModel.setParameterValueById(
+                //         "ParamBodyAngleY",
+                //         lerp(
+                //         result.head.degrees.x * dampener,
+                //         coreModel.getParameterValueById("ParamBodyAngleY"),
+                //         lerpAmount
+                //         )
+                //     );
+                //     coreModel.setParameterValueById(
+                //         "ParamBodyAngleZ",
+                //         lerp(
+                //         result.head.degrees.z * dampener,
+                //         coreModel.getParameterValueById("ParamBodyAngleZ"),
+                //         lerpAmount
+                //         )
+                //     );
+                
+                //     // Simple example without winking.
+                //     // Interpolate based on old blendshape, then stabilize blink with `Kalidokit` helper function.
+                //     let stabilizedEyes = Kalidokit.Face.stabilizeBlink(
+                //         {
+                //         l: lerp(
+                //             result.eye.l,
+                //             coreModel.getParameterValueById("ParamEyeLOpen"),
+                //             0.7
+                //         ),
+                //         r: lerp(
+                //             result.eye.r,
+                //             coreModel.getParameterValueById("ParamEyeROpen"),
+                //             0.7
+                //         )
+                //         },
+                //         result.head.y
+                //     );
+                //     // eye blink
+                //     coreModel.setParameterValueById("ParamEyeLOpen", stabilizedEyes.l);
+                //     coreModel.setParameterValueById("ParamEyeROpen", stabilizedEyes.r);
+                
+                //     // mouth
+                //     coreModel.setParameterValueById(
+                //         "ParamMouthOpenY",
+                //         lerp(
+                //         result.mouth.y,
+                //         coreModel.getParameterValueById("ParamMouthOpenY"),
+                //         0.3
+                //         )
+                //     );
+                //     // Adding 0.3 to ParamMouthForm to make default more of a "smile"
+                //     coreModel.setParameterValueById(
+                //         "ParamMouthForm",
+                //         0.3 +
+                //         lerp(
+                //             result.mouth.x,
+                //             coreModel.getParameterValueById("ParamMouthForm"),
+                //             0.3
+                //         )
+                //     );
+                // };
+            };
+            
+            // start camera using mediapipe camera utils
+            const startCamera = () => {
+            const camera = new Camera(videoElement, {
+                onFrame: async () => {
+                await facemesh.send({ image: videoElement });
+                },
+                width: 426,
+                height: 240
+            });
+            camera.start();
+            };
+
+            
+            facemesh.onResults(onResults);
+
+            startCamera();
+        </script>
+        <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js" integrity="sha384-IQsoLXl5PILFhosVNubq5LC7Qb9DXgDA9i+tQ8Zj3iwWAwPtgFTxbJ8NT4GN1R8p" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.min.js" integrity="sha384-cVKIPhGWiC2Al4u+LWgxfKTRIcfu0JTxR+EQDz/bgldoEyl4H0zUF0QKbrJ0EcQF" crossorigin="anonymous"></script>
+    </body>
+</html>
